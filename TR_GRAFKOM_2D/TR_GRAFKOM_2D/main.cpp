@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<glut.h>
 #include<math.h>
+#include<Box2D\Box2D.h>
 
 #define PI 3.14
 int size = 13;
@@ -69,7 +70,6 @@ void drawShapes(int x, int y, int shapeInd){
 
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT);
-
 	node = head;
 	if(check){
 		glColor3f(1, 1, 1);
