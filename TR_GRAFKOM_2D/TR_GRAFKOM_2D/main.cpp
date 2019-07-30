@@ -7,7 +7,7 @@
 #define PI 3.14
 const int size = 13;
 bool gravity = true;
-bool isTriangle = false;
+bool isTriangle = false, isSquare = false;
 b2World* world;
 
 b2Body* addTriangle(int x, int y, bool dynamic){
@@ -38,15 +38,16 @@ b2Body* addTriangle(int x, int y, bool dynamic){
 //drawTriangle belum dicoba, error masih di addTriangle shape.set assertion fail
 void drawTriangle(b2Vec2 points[3], b2Vec2 center, float angle){
 	glColor3f(1, 1, 1);
-	glPushMatrix();
-	glTranslatef(center.x, center.y, 0);
-	glRotatef(angle*180.0/PI, 0, 0, 1);
+	//TO DO: Modify this transformation
+	//glPushMatrix();
+	//glTranslatef(center.x, center.y, 0);
+	//glRotatef(angle*180.0/PI, 0, 0, 0);
 	glBegin(GL_LINE_LOOP);
 	for(int a = 0; a < 3; a++){
 		glVertex2f(points[a].x, points[a].y);
 	}
 	glEnd();
-	glPopMatrix();
+	//glPopMatrix();
 }
 
 b2Body* addCircle(int x, int y, int radius, bool dynamic){
@@ -125,19 +126,24 @@ void display(){
 	b2Vec2 trianglePoints[3];
 
 	while(node){
-		if(node->GetFixtureList()->GetShape()->GetType() == 0){
+		if(node->GetFixtureList()->GetShape()->GetType() == b2Shape::e_circle){
 			b2CircleShape* circle = (b2CircleShape* ) node->GetFixtureList()->GetShape();
 			drawCircle(node->GetWorldCenter(), circle->m_radius, node->GetAngle());
-		}else{
-			for(int a = 0; a < 4; a++){
-				points[a] = ((b2PolygonShape* ) node->GetFixtureList()->GetShape())->GetVertex(a);
+		} else {
+			if (isTriangle) {
+				for (int a = 0; a < 3; a++) {
+					trianglePoints[a] = ((b2PolygonShape*)node->GetFixtureList()->GetShape())->GetVertex(a);
+				}
+				drawTriangle(trianglePoints, node->GetWorldCenter(), node->GetAngle());
+				isTriangle = false;
 			}
-			drawRect(points, node->GetWorldCenter(), node->GetAngle());
-		}
-		if(isTriangle){
-			for(int a = 0; a < 3; a++){
+			if (isSquare) {
+				for (int a = 0; a < 4; a++) {
+					points[a] = ((b2PolygonShape*)node->GetFixtureList()->GetShape())->GetVertex(a);
+				}
+				drawRect(points, node->GetWorldCenter(), node->GetAngle());
+				isSquare = false;
 			}
-			isTriangle = false;
 		}
 		node = node->GetNext();
 	}
@@ -190,6 +196,7 @@ void keyboardFunc(unsigned char key, int x, int y){
 	switch(key){
 	case 'A':
 	case 'a':
+		isSquare = true;
 		addRect(x, y, size, size, true);
 		break;
 	case 'S':
