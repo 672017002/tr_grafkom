@@ -10,6 +10,8 @@ bool gravity = true;
 bool isTriangle = false, isSquare = false;
 b2World* world;
 
+b2Draw* drawShape; //inisialisasi b2draw drawshape
+
 b2Body* addTriangle(int x, int y, bool dynamic){
 	b2BodyDef bodydef;
 	bodydef.position.Set(x, y);
@@ -17,19 +19,26 @@ b2Body* addTriangle(int x, int y, bool dynamic){
 		bodydef.type = b2_dynamicBody;
 	}
 	b2Body* body = world->CreateBody(&bodydef);
-	b2FixtureDef fixturedef;
-	b2PolygonShape shape;
-	fixturedef.shape=&shape;
-	fixturedef.density=1.0;
 
+	b2PolygonShape shape;
 	//vertex untuk membuat segitiga
 	b2Vec2 vert[3];
 	vert[0] = b2Vec2(x-size, y-size);
 	vert[1] = b2Vec2(x+size, y-size);
 	vert[2] = b2Vec2(x, y+size);
-
+	
+	//b2Vec2 vertices[3];
+	//vertices[0].Set(-13.0f, 0.0f);
+	//vertices[1].Set(13.0f, 0.0f);
+	//vertices[2].Set(0.0f, 13.0f);
+	
 	int32 count = 3;
 	shape.Set(vert, count);
+
+	b2FixtureDef fixturedef;
+	fixturedef.shape=&shape;
+	fixturedef.density=1.0;
+
 
 	body->CreateFixture(&fixturedef);
 	return body;
@@ -39,15 +48,25 @@ b2Body* addTriangle(int x, int y, bool dynamic){
 void drawTriangle(b2Vec2 points[3], b2Vec2 center, float angle){
 	glColor3f(1, 1, 1);
 	//TO DO: Modify this transformation
-	//glPushMatrix();
+	glPushMatrix();
 	//glTranslatef(center.x, center.y, 0);
-	//glRotatef(angle*180.0/PI, 0, 0, 0);
+	//glRotatef(angle*180.0, 0, 0, 1);
+
 	glBegin(GL_LINE_LOOP);
-	for(int a = 0; a < 3; a++){
-		glVertex2f(points[a].x, points[a].y);
-	}
+	//for(int a = 0; a < 3; a++){
+	//	glVertex2f(points[a].x, points[a].y);
+	//}
+
+	glVertex2f(center.x-size, center.y-size);
+	glVertex2f(center.x+size, center.y-size);
+	glVertex2f(center.x, center.y+size);
+
 	glEnd();
-	//glPopMatrix();
+	glPopMatrix();
+
+	glBegin(GL_POINTS);
+	glVertex2f(center.x, center.y);
+	glEnd();
 }
 
 b2Body* addCircle(int x, int y, int radius, bool dynamic){
@@ -83,6 +102,11 @@ void drawCircle(b2Vec2 center, float radius, float angle){
 	glEnd();
 
 	glPopMatrix();
+
+		glBegin(GL_POINTS);
+	glVertex2f(center.x, center.y);
+	glEnd();
+
 }
 
 b2Body* addRect(int x, int y, int w, int h, bool dynamic){
@@ -108,12 +132,17 @@ void drawRect(b2Vec2 points[4], b2Vec2 center, float angle){
 	glPushMatrix();
 	glTranslatef(center.x, center.y, 0);
 	glRotatef(angle*180.0/PI, 0, 0, 1);
+
 	glBegin(GL_LINE_LOOP);
 	for(int a = 0; a < 4; a++){
 		glVertex2f(points[a].x, points[a].y);
 	}
 	glEnd();
 	glPopMatrix();
+
+	glBegin(GL_POINTS);
+	glVertex2f(center.x, center.y);
+	glEnd();
 }
 
 
@@ -121,28 +150,32 @@ void display(){
 	glClear(GL_COLOR_BUFFER_BIT);
 	glLoadIdentity();
 
+
 	b2Body* node = world->GetBodyList();
 	b2Vec2 points[4];
 	b2Vec2 trianglePoints[3];
+
+	b2Color color(1, 1, 1);
 
 	while(node){
 		if(node->GetFixtureList()->GetShape()->GetType() == b2Shape::e_circle){
 			b2CircleShape* circle = (b2CircleShape* ) node->GetFixtureList()->GetShape();
 			drawCircle(node->GetWorldCenter(), circle->m_radius, node->GetAngle());
 		} else {
-			if (isTriangle) {
+			int checkShape = ((b2PolygonShape*)node->GetFixtureList()->GetShape())->GetVertexCount();		
+
+			if (checkShape == 3) {
 				for (int a = 0; a < 3; a++) {
 					trianglePoints[a] = ((b2PolygonShape*)node->GetFixtureList()->GetShape())->GetVertex(a);
 				}
-				drawTriangle(trianglePoints, node->GetWorldCenter(), node->GetAngle());
-				isTriangle = false;
+				drawTriangle(trianglePoints, node->GetWorldCenter(), node->GetAngle());		
+				//drawShape->DrawPolygon(trianglePoints, 3, color);
 			}
-			if (isSquare) {
+			if (checkShape == 4) {
 				for (int a = 0; a < 4; a++) {
 					points[a] = ((b2PolygonShape*)node->GetFixtureList()->GetShape())->GetVertex(a);
 				}
-				drawRect(points, node->GetWorldCenter(), node->GetAngle());
-				isSquare = false;
+				drawRect(points, node->GetWorldCenter(), node->GetAngle());				
 			}
 		}
 		node = node->GetNext();
@@ -157,18 +190,26 @@ void loop(int v){
 		glutTimerFunc(1, loop, 0);
 }
 
-b2Body* myRect;
+
 void init(void){
 	glClearColor(0, 0, 0, 0);
     glMatrixMode(GL_PROJECTION);
 	gluOrtho2D(0.0, 800.0, 0.0, 600.0);
 	glMatrixMode(GL_MODELVIEW);
 	glClearColor(0,0,0,1);
+
+	uint32 flags = 0;
+	flags += b2Draw::e_jointBit;
+	flags += b2Draw::e_aabbBit;
+	flags += b2Draw::e_pairBit;
+	flags += b2Draw::e_centerOfMassBit;
+	drawShape->SetFlags(flags); //setflag error
+
 	world = new b2World(b2Vec2(0, -9.81));
+	world->SetDebugDraw(drawShape);
+
 	glColor3f(1, 1, 1);
 	addRect(400, -5, 800, 10, false);
-	//myRect = addRect(300, 300, size, size, true);
-
 }
 bool mouseDown = false;
 void mouseFunc(int button, int state, int x, int y){
@@ -186,7 +227,6 @@ void motionFunc(int x, int y){
 	if(mouseDown){
 		//printf("asdasd");
 		b2Vec2 mouse(x, 600-y);
-		myRect->ApplyForceToCenter(mouse, true);
 	}
 }
 
@@ -196,7 +236,6 @@ void keyboardFunc(unsigned char key, int x, int y){
 	switch(key){
 	case 'A':
 	case 'a':
-		isSquare = true;
 		addRect(x, y, size, size, true);
 		break;
 	case 'S':
@@ -205,7 +244,6 @@ void keyboardFunc(unsigned char key, int x, int y){
 		break;
 	case 'D':
 	case 'd':
-		isTriangle = true;
 		addTriangle(x, y, true);
 		break;
 	case 'F':
@@ -232,8 +270,8 @@ int main(int argc, char** argv){
 	init();
 
 	glutDisplayFunc(display);
-	glutMouseFunc(mouseFunc);
-	glutMotionFunc(motionFunc);
+	//glutMouseFunc(mouseFunc);
+	//glutMotionFunc(motionFunc);
     glutKeyboardFunc(keyboardFunc);
 
 	glutMainLoop();
