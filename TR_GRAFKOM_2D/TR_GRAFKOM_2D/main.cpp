@@ -13,11 +13,9 @@ bool gravity = true;
 bool isTriangle = false;
 bool isSquare = false;
 
-
-
 b2World* world;
-
-b2MouseJointDef mouseDef;
+b2MouseJointDef jointDef;
+b2MouseJoint* joint;
 
 
 b2Body* addTriangle(int x, int y, bool dynamic){
@@ -203,20 +201,39 @@ void init(void){
 	glColor3f(1, 1, 1);
 	myRect = addRect(400, -5, 800, 10, false);
 
-	mouseDef.bodyA = myRect;
-	mouseDef.collideConnected = true;
-	mouseDef.maxForce = 500;
+	//mouseJoint
+	jointDef.bodyA = myRect;
+	jointDef.collideConnected = true;
+	jointDef.maxForce = 500;
 
 }
 
-bool mouseDown = false;
+b2Vec2 mouseVec;
+b2JointDef asd;
+class myCallback : public b2QueryCallback{
+public:
+	bool ReportFixture(b2Fixture fixture){
+		if(!fixture.TestPoint(mouseVec)){
+			return false;
+		}
 
+		jointDef.bodyB = (b2Body*) fixture.GetBody();
+		jointDef.target.Set(mouseVec.x, mouseVec.y);
+		joint = (b2MouseJoint* )world->CreateJoint(&jointDef);
+		return false;
+	}
+};
+
+bool mouseDown = false;
+b2AABB aabb;
+myCallback* call;
 void mouseFunc(int button, int state, int x, int y){
 	x = x;
 	y = 600 - y;
-
+	mouseVec.Set(x, y);
 		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 		{
+			world->QueryAABB(call, aabb);
 
 			mouseDown = true;
 		}else{
