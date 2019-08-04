@@ -198,53 +198,79 @@ void init(void){
 
 	world = new b2World(b2Vec2(0, -9.81));
 
+	//dasar
 	glColor3f(1, 1, 1);
 	myRect = addRect(400, -5, 800, 10, false);
-
-	//mouseJoint
-	jointDef.bodyA = myRect;
-	jointDef.collideConnected = true;
-	jointDef.maxForce = 500;
-
 }
 
-b2Vec2 mouseVec;
-b2JointDef asd;
+
 class myCallback : public b2QueryCallback{
 public:
-	bool ReportFixture(b2Fixture fixture){
-		if(!fixture.TestPoint(mouseVec)){
+	myCallback(const b2Vec2& point){
+		m_point = point;
+		m_fixture = NULL;
+	}
+
+	bool ReportFixture(b2Fixture* fixture){
+
+		bool inside = fixture->TestPoint(m_point);
+		if(inside){
+			m_fixture = fixture;
 			return false;
 		}
-
-		jointDef.bodyB = (b2Body*) fixture.GetBody();
-		jointDef.target.Set(mouseVec.x, mouseVec.y);
-		joint = (b2MouseJoint* )world->CreateJoint(&jointDef);
-		return false;
+		return true;
 	}
+
+	b2Vec2 m_point;
+	b2Fixture* m_fixture;
 };
 
 bool mouseDown = false;
 b2AABB aabb;
-myCallback* call;
+b2Vec2 mouseVec;
+b2Vec2 box;
+
 void mouseFunc(int button, int state, int x, int y){
 	x = x;
 	y = 600 - y;
 	mouseVec.Set(x, y);
+
 		if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 		{
-			world->QueryAABB(call, aabb);
+			box.Set(0.001f, 0.001f);
+			aabb.lowerBound = mouseVec - box;
+			aabb.upperBound = mouseVec - box;
+			myCallback call(mouseVec);
+			world->QueryAABB(&call, aabb);
+
+			if(call.m_fixture){
+				b2Body* body = call.m_fixture->GetBody();
+				b2MouseJointDef md;
+				jointDef.bodyA = myRect;
+				jointDef.bodyB = body;
+				jointDef.target = mouseVec;
+				jointDef.maxForce = 1000.0f * body->GetMass();
+				joint = (b2MouseJoint*)world->CreateJoint(&jointDef);
+				body->SetAwake(true);
+			}
 
 			mouseDown = true;
 		}else{
+			if(joint){
+				world->DestroyJoint(joint);
+				joint = NULL;
+			}
 			mouseDown = false;
 		}
 }
 
 void motionFunc(int x, int y){
+	x = x;
+	y = 600 - y;
 	if(mouseDown){
-		printf("asdasd");
-
+		if(joint){
+			joint->SetTarget(b2Vec2(x, y));
+		}
 	}
 }
 
