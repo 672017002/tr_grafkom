@@ -239,7 +239,7 @@ void mouseFunc(int button, int state, int x, int y){
 		{
 			box.Set(0.001f, 0.001f);
 			aabb.lowerBound = mouseVec - box;
-			aabb.upperBound = mouseVec - box;
+			aabb.upperBound = mouseVec + box;
 			myCallback call(mouseVec);
 			world->QueryAABB(&call, aabb);
 
